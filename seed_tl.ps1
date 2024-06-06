@@ -517,7 +517,21 @@ do {
             Start-Process -FilePath "$($steamDir.SteamExe)" -Wait -ArgumentList $steamConnect
             #Waits for splash and game window to appear, moves to another desktop env.
 
+            #init timeout and reset
             $timeout = 0
+
+            #Function to get current work env, to later swap back to it.
+            #This is to duct tape an issue where sometimes the desktop changes when windows are moved.
+            $currentenv = Get-DesktopIndex
+
+            Function Return-Desktop{
+                if((Get-DesktopIndex) -ne ($currentenv)){
+                   Switch-Desktop $currentenv
+                   Write-Host "Desktop was returned to previous work env" 
+                }
+            }
+
+
             do{
                 if ($timeout -gt 310) {
                     Write-Host (timestamp) "Something bad happened, still looping through and erroring out. ($timeout)"
@@ -539,6 +553,8 @@ do {
                     }
                 }
             } while(-not (($timeout -gt 100) -or ((Find-WindowHandle "EAC Launcher") -gt 0) -or (Get-Process -Name 'HLL-Win64-Shipping' -ErrorAction SilentlyContinue)))
+
+            Return-Desktop
 
             $timeout = 0
             do{
@@ -566,6 +582,8 @@ do {
                     }
                 }
             } while((-not ($timeout -gt 300)) -or ($location -ne 'seeding'))
+
+            Return-Desktop
             
             Start-Sleep -Seconds $launchSleep
             $seedStartTime=(GET-DATE)
